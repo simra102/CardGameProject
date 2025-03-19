@@ -1,127 +1,87 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package rummygame;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Scanner;
 
-/**
- * Game class for Rummy
- */
+import java.util.*;
+
 public class Game {
-    private final List<Player> players;
-    private final Deck deck;
-    private final Discard discard; // ✅ Using Discard class
-    private final Scanner scanner;
+    private List<Player> players;
+    private Deck deck;
+    private Discard discardPile;
+    private int currentPlayerIndex;
+    private Scanner scanner;
 
     public Game(List<String> playerNames) {
-        players = new ArrayList<>();
+        this.players = new ArrayList<>();
+        this.deck = new Deck();
+        this.discardPile = new Discard();
+        this.currentPlayerIndex = 0;
+        this.scanner = new Scanner(System.in);
+
         for (String name : playerNames) {
             players.add(new Player(name));
         }
-        deck = new Deck();
-        discard = new Discard(); // ✅ Correct class name
-        scanner = new Scanner(System.in);
-    }
 
-    public void startGame() {
-        // Deal initial cards (7 cards per player)
+        deck.shuffle();
+
+        // Deal 7 cards to each player
         for (Player player : players) {
             for (int i = 0; i < 7; i++) {
                 player.addCard(deck.drawCard());
             }
         }
-
-        System.out.println("\nGame has started!\n");
-        playTurns();
     }
 
-    private void playTurns() {
-        boolean gameOn = true;
-        
-        while (gameOn) {
-            for (Player player : players) {
-                System.out.println("\n" + player.getName() + "'s turn.");
-                player.showHand();
+    public void startGame() {
+        boolean gameInProgress = true;
 
-                // ✅ FIXED: Safe input handling
-                int choice;
-                while (true) {
-                    System.out.println("Draw from (1) Deck or (2) Discard Pile? ");
-                    if (scanner.hasNextInt()) {
-                        choice = scanner.nextInt();
-                        scanner.nextLine(); // Consume newline
-                        if (choice == 1 || choice == 2) {
-                            break; // Valid input, exit loop
-                        } else {
-                            System.out.println("Invalid choice! Enter 1 for Deck or 2 for Discard Pile.");
-                        }
+        while (gameInProgress) {
+            Player currentPlayer = players.get(currentPlayerIndex);
+            System.out.println(currentPlayer.getName() + "'s turn:");
+            currentPlayer.showHand();
+
+            // Draw a card from deck
+            Card drawnCard = deck.drawCard();
+            currentPlayer.addCard(drawnCard);
+            System.out.println(currentPlayer.getName() + " drew a " + drawnCard);
+
+            // Player decides whether to discard
+            discardPile.showDiscardPile();
+            System.out.println("Enter card index to discard, or -1 to skip:");
+
+            int discardIndex = -1;
+            boolean validInput = false;
+            while (!validInput) {
+                try {
+                    discardIndex = scanner.nextInt();
+
+                    if (discardIndex == -1) {
+                        validInput = true;
+                    } else if (discardIndex >= 0 && discardIndex < currentPlayer.getHand().getCards().size()) {
+                        validInput = true;
                     } else {
-                        System.out.println("Invalid input! Please enter a number (1 or 2).");
-                        scanner.next(); // Clear invalid input
+                        System.out.println("Invalid index. Please try again.");
                     }
-                }
-
-                // Drawing a card
-                Card drawnCard;
-                if (choice == 1) { // Draw from deck
-                    drawnCard = deck.drawCard();
-                    System.out.println(player.getName() + " drew " + drawnCard);
-                } else { // Draw from discard pile
-                    drawnCard = discard.pickTopCard();
-                    if (drawnCard == null) {
-                        System.out.println("Discard pile is empty! Drawing from deck instead.");
-                        drawnCard = deck.drawCard();
-                    } else {
-                        System.out.println(player.getName() + " picked up " + drawnCard + " from the discard pile.");
-                    }
-                }
-
-                player.addCard(drawnCard);
-                player.showHand();
-
-                // Player chooses a card to discard
-                System.out.println("Enter a card to discard (rank and suit, e.g., '10 Hearts'):");
-                String discardInput = scanner.nextLine();
-                String[] parts = discardInput.split(" ");
-
-                if (parts.length != 2) {
-                    System.out.println("Invalid input! Please enter in format: '10 Hearts'");
-                    continue;
-                }
-
-                Card discardCard = player.findCard(parts[0], parts[1]); // Find the actual card in hand
-                if (discardCard != null) {
-                    boolean removed = player.removeCard(discardCard);
-                    if (removed) {
-                        discard.discard(discardCard); // ✅ Using correct discard object
-                        System.out.println(player.getName() + " discarded " + discardCard);
-                    } else {
-                        System.out.println("Invalid discard! That card is not in your hand.");
-                    }
-                } else {
-                    System.out.println("Invalid input! You don't have that card.");
-                }
-
-                // ✅ FIXED: Correct winner message
-                if (checkForWinner(player)) {
-                    System.out.println("\n🎉 " + player.getName() + " has won the game! 🎉");
-                    gameOn = false;
-                    break;
-                }
-
-                if (deck.isEmpty()) {
-                    System.out.println("\nThe deck is empty! Game Over.");
-                    gameOn = false;
+                } catch (InputMismatchException e) {
+                    System.out.println("Invalid input. Please enter a valid number.");
+                    scanner.nextLine(); // Clear the invalid input
                 }
             }
-        }
-    }
 
-    // Check if a player has a winning set
-    private boolean checkForWinner(Player player) {
-        return player.hasSet(); // Calls Player's hasSet() method to check for valid sets
+            if (discardIndex != -1) {
+                Card cardToDiscard = currentPlayer.getHand().getCards().get(discardIndex);
+                discardPile.discard(cardToDiscard);
+                currentPlayer.removeCard(cardToDiscard);
+                System.out.println(currentPlayer.getName() + " discarded " + cardToDiscard);
+            } else {
+                System.out.println(currentPlayer.getName() + " skipped discarding.");
+            }
+
+            // Check if the player has a set or sequence
+            if (currentPlayer.hasSet()) {
+                System.out.println(currentPlayer.getName() + " wins!");
+                gameInProgress = false;
+            } else {
+                currentPlayerIndex = (currentPlayerIndex + 1) % players.size();
+            }
+        }
     }
 }
