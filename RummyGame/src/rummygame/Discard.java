@@ -1,43 +1,26 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
-
-
 package rummygame;
-import java.util.Stack;
 
-/**
- * Manages the discard pile for the game.
- */
+import java.util.*;
+
 public class Discard {
-    private final Stack<Card> pile;
+    private List<Card> discardPile;
 
     public Discard() {
-        pile = new Stack<>();
+        discardPile = new ArrayList<>();
     }
 
-    /**
-     * Adds a card to the discard pile.
-     * @param card The card to discard.
-     */
     public void discard(Card card) {
-        pile.push(card);
+        discardPile.add(card);
     }
 
-    /**
-     * Picks up the top card from the discard pile.
-     * @return The top discarded card, or null if the pile is empty.
-     */
-    public Card pickTopCard() {
-        return pile.isEmpty() ? null : pile.pop();
+    public Card drawFromDiscard() {
+        if (discardPile.isEmpty()) {
+            return null;
+        }
+        return discardPile.remove(discardPile.size() - 1);
     }
 
-    /**
-     * Checks if the discard pile is empty.
-     * @return True if empty, false otherwise.
-     */
-    public boolean isEmpty() {
-        return pile.isEmpty();
+    public void showDiscardPile() {
+        System.out.println("Discard pile: " + discardPile);
     }
 }
